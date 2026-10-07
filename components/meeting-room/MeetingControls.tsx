@@ -16,6 +16,8 @@ interface MeetingControlsProps {
   isHost: boolean;
   participantsCount: number;
   activePanel?: "none" | "participants" | "chat";
+  isMicLoading?: boolean;
+  isCameraLoading?: boolean;
 }
 
 export function MeetingControls({
@@ -28,7 +30,9 @@ export function MeetingControls({
   onLeave,
   isHost,
   participantsCount,
-  activePanel = "none"
+  activePanel = "none",
+  isMicLoading = false,
+  isCameraLoading = false
 }: MeetingControlsProps) {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -58,9 +62,11 @@ export function MeetingControls({
       {/* Left side */}
       <div className="flex items-center gap-1 md:gap-2">
         <button 
-          className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-800 cursor-pointer min-w-[60px]" 
+          className={`flex flex-col items-center justify-center p-2 rounded hover:bg-gray-800 cursor-pointer min-w-[60px] ${isMicLoading ? "opacity-50" : ""}`} 
           onClick={onToggleMute}
           aria-pressed={!isMuted}
+          disabled={isMicLoading}
+          aria-label={isMuted ? "Unmute" : "Mute"}
         >
           {isMuted ? <MicOff className="w-5 h-5 text-red-500 mb-1" /> : <Mic className="w-5 h-5 mb-1" />}
           <span className={`text-[10px] ${isMuted ? "text-red-500" : "text-gray-300"}`}>
@@ -69,9 +75,11 @@ export function MeetingControls({
         </button>
         
         <button 
-          className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-800 cursor-pointer min-w-[60px]" 
+          className={`flex flex-col items-center justify-center p-2 rounded hover:bg-gray-800 cursor-pointer min-w-[60px] ${isCameraLoading ? "opacity-50" : ""}`} 
           onClick={onToggleVideo}
           aria-pressed={isVideoOn}
+          disabled={isCameraLoading}
+          aria-label={isVideoOn ? "Turn off camera" : "Turn on camera"}
         >
           {!isVideoOn ? <VideoOff className="w-5 h-5 text-red-500 mb-1" /> : <Video className="w-5 h-5 mb-1" />}
           <span className={`text-[10px] ${!isVideoOn ? "text-red-500" : "text-gray-300"}`}>

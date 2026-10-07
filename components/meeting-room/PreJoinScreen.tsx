@@ -13,10 +13,23 @@ interface PreJoinScreenProps {
   onJoin: (name: string, isAudioOn: boolean, isVideoOn: boolean) => void;
 }
 
+import { useLocalMediaContext } from "@/hooks/useLocalMedia";
+
 export function PreJoinScreen({ meeting, initialName, onJoin }: PreJoinScreenProps) {
   const [name, setName] = useState(initialName);
-  const [isAudioOn, setIsAudioOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(true);
+  
+  const {
+    isCameraOn, isMicOn, videoStream, micLevel,
+    toggleCamera, toggleMic, isCameraLoading, isMicLoading
+  } = useLocalMediaContext();
+
+  // Attach video stream to video element
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  React.useEffect(() => {
+    if (videoRef.current && videoStream) {
+      videoRef.current.srcObject = videoStream;
+    }
+  }, [videoStream, isCameraOn]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -25,32 +38,49 @@ export function PreJoinScreen({ meeting, initialName, onJoin }: PreJoinScreenPro
         
         {/* Video Preview */}
         <div className="w-full max-w-xl aspect-video bg-gray-900 rounded-xl overflow-hidden relative shadow-lg flex flex-col">
-          {!isVideoOn ? (
+          {!isCameraOn ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-3xl font-medium text-white">
+              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-3xl font-medium text-white relative">
                 {name ? name.substring(0, 2).toUpperCase() : "?"}
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-500">
-              <Video className="w-16 h-16 opacity-20" />
+            <div className="flex-1 w-full h-full bg-black relative">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted 
+                className="w-full h-full object-cover" 
+                style={{ transform: "scaleX(-1)" }} 
+              />
             </div>
           )}
           
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
             <button 
-              onClick={() => setIsAudioOn(!isAudioOn)}
-              className={`p-3 rounded-full ${isAudioOn ? "bg-gray-700/80 hover:bg-gray-600 text-white" : "bg-danger hover:bg-red-600 text-white"}`}
-              aria-label={isAudioOn ? "Mute" : "Unmute"}
+              onClick={toggleMic}
+              disabled={isMicLoading}
+              aria-pressed={isMicOn}
+              className={`p-3 rounded-full relative ${isMicOn ? "bg-gray-700/80 hover:bg-gray-600 text-white" : "bg-danger hover:bg-red-600 text-white"}`}
+              aria-label={isMicOn ? "Mute" : "Unmute"}
             >
-              {isAudioOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              {isMicOn ? <Mic className="w-5 h-5 relative z-10" /> : <MicOff className="w-5 h-5 relative z-10" />}
+              {isMicOn && micLevel > 0 && (
+                <div 
+                  className="absolute inset-0 bg-green-500 rounded-full opacity-30 transition-transform duration-75"
+                  style={{ transform: `scale(${1 + micLevel * 1.5})` }}
+                />
+              )}
             </button>
             <button 
-              onClick={() => setIsVideoOn(!isVideoOn)}
-              className={`p-3 rounded-full ${isVideoOn ? "bg-gray-700/80 hover:bg-gray-600 text-white" : "bg-danger hover:bg-red-600 text-white"}`}
-              aria-label={isVideoOn ? "Stop Video" : "Start Video"}
+              onClick={toggleCamera}
+              disabled={isCameraLoading}
+              aria-pressed={isCameraOn}
+              className={`p-3 rounded-full ${isCameraOn ? "bg-gray-700/80 hover:bg-gray-600 text-white" : "bg-danger hover:bg-red-600 text-white"}`}
+              aria-label={isCameraOn ? "Turn off camera" : "Turn on camera"}
             >
-              {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+              {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -71,7 +101,7 @@ export function PreJoinScreen({ meeting, initialName, onJoin }: PreJoinScreenPro
           
           <Button 
             fullWidth 
-            onClick={() => onJoin(name, isAudioOn, isVideoOn)}
+            onClick={() => onJoin(name, isMicOn, isCameraOn)}
             disabled={!name.trim()}
           >
             Join

@@ -9,7 +9,10 @@ interface ParticipantGridProps {
   speakingParticipantId?: string | null;
 }
 
+import { useMeetingsContext } from "../providers/MeetingsProvider";
+
 export function ParticipantGrid({ participants, speakingParticipantId }: ParticipantGridProps) {
+  const { currentUser } = useMeetingsContext();
   const count = participants.length;
   
   // Calculate grid layout based on number of participants
@@ -28,7 +31,8 @@ export function ParticipantGrid({ participants, speakingParticipantId }: Partici
         <div key={p.id} className="w-full h-full min-h-[150px] max-h-[800px] flex items-center justify-center">
           <ParticipantTile 
             participant={p} 
-            isSpeaking={p.id === speakingParticipantId} 
+            isSpeaking={p.id === speakingParticipantId}
+            isCurrentUser={currentUser?.id === p.id}
           />
         </div>
       ))}

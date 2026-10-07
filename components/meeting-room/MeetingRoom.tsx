@@ -11,6 +11,7 @@ import { LeaveConfirmModal } from "../modals/LeaveConfirmModal";
 import { Shield, Info } from "lucide-react";
 import { meetingService } from "@/lib/api/meetings";
 import { CopyLinkButton } from "../ui/CopyLinkButton";
+import { useLocalMediaContext } from "@/hooks/useLocalMedia";
 
 interface MeetingRoomProps {
   meeting: Meeting;
@@ -25,10 +26,10 @@ export function MeetingRoom({ meeting, currentParticipant, onLeave }: MeetingRoo
   const [showInfo, setShowInfo] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   
-  // Local state for current participant controls
-  const [isMuted, setIsMuted] = useState(currentParticipant.isMuted);
-  const [isVideoOn, setIsVideoOn] = useState(currentParticipant.isVideoOn);
-  
+  const {
+    isCameraOn, isMicOn, toggleCamera, toggleMic, isCameraLoading, isMicLoading, videoStream, micLevel
+  } = useLocalMediaContext();
+
   const isHost = currentParticipant.role === "host";
 
   useEffect(() => {
@@ -44,13 +45,13 @@ export function MeetingRoom({ meeting, currentParticipant, onLeave }: MeetingRoo
         // Combine with local state, mapping to RoomParticipant
         const roomParts: RoomParticipant[] = parts.map(p => ({
           ...p,
-          isMuted: p.id === currentParticipant.id ? isMuted : true,
-          isVideoOn: p.id === currentParticipant.id ? isVideoOn : false,
+          isMuted: p.id === currentParticipant.id ? !isMicOn : true,
+          isVideoOn: p.id === currentParticipant.id ? isCameraOn : false,
         }));
         
         // Ensure current participant is always in the list with up-to-date state
         const filteredParts = roomParts.filter(p => p.id !== currentParticipant.id);
-        const updatedCurrent = { ...currentParticipant, isMuted, isVideoOn };
+        const updatedCurrent = { ...currentParticipant, isMuted: !isMicOn, isVideoOn: isCameraOn };
         
         setParticipants([updatedCurrent, ...filteredParts]);
       } catch (err) {
@@ -63,14 +64,13 @@ export function MeetingRoom({ meeting, currentParticipant, onLeave }: MeetingRoo
     // In a real app we'd poll or use WebSockets. Here we'll just poll every 3s for demo purposes.
     const interval = setInterval(fetchParticipants, 3000);
     return () => clearInterval(interval);
-  }, [meeting.meetingId, currentParticipant, isMuted, isVideoOn]);
+  }, [meeting.meetingId, currentParticipant, isMicOn, isCameraOn]);
 
   const togglePanel = (panel: "participants" | "chat") => {
     setActivePanel(prev => prev === panel ? "none" : panel);
   };
 
-  const handleToggleMute = () => setIsMuted(!isMuted);
-  const handleToggleVideo = () => setIsVideoOn(!isVideoOn);
+
 
   const formatTime = (totalSeconds: number) => {
     const m = Math.floor(totalSeconds / 60);
@@ -122,7 +122,7 @@ export function MeetingRoom({ meeting, currentParticipant, onLeave }: MeetingRoo
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 relative flex items-center justify-center pt-12 pb-2">
-          <ParticipantGrid participants={participants} speakingParticipantId={!isMuted ? currentParticipant.id : null} />
+          <ParticipantGrid participants={participants} speakingParticipantId={isMicOn ? currentParticipant.id : null} />
         </div>
         
         {/* Side Panels */}
@@ -143,10 +143,12 @@ export function MeetingRoom({ meeting, currentParticipant, onLeave }: MeetingRoo
 
       {/* Bottom Controls */}
       <MeetingControls
-        isMuted={isMuted}
-        isVideoOn={isVideoOn}
-        onToggleMute={handleToggleMute}
-        onToggleVideo={handleToggleVideo}
+        isMuted={!isMicOn}
+        isVideoOn={isCameraOn}
+        onToggleMute={toggleMic}
+        onToggleVideo={toggleCamera}
+        isMicLoading={isMicLoading}
+        isCameraLoading={isCameraLoading}
         onToggleParticipants={() => togglePanel("participants")}
         onToggleChat={() => togglePanel("chat")}
         onLeave={() => setIsLeaveModalOpen(true)}

@@ -16,6 +16,7 @@ function MeetingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { currentUser, isLoading: userLoading } = useMeetingsContext();
+  const { error: mediaError, clearError: clearMediaError } = useLocalMediaContext();
   
   const rawId = params.meetingId as string;
   const initialName = searchParams.get("name") || "";
@@ -105,27 +106,38 @@ function MeetingContent() {
 
   if (!participant) {
     return (
-      <PreJoinScreen 
-        meeting={meeting} 
-        initialName={initialName || currentUser?.name || ""} 
-        onJoin={handleJoin} 
-      />
+      <>
+        {mediaError && <Toast message={mediaError} onClose={clearMediaError} duration={5000} />}
+        <PreJoinScreen 
+          meeting={meeting} 
+          initialName={initialName || currentUser?.name || ""} 
+          onJoin={handleJoin} 
+        />
+      </>
     );
   }
 
   return (
-    <MeetingRoom 
-      meeting={meeting} 
-      currentParticipant={participant} 
-      onLeave={handleLeave} 
-    />
+    <>
+      {mediaError && <Toast message={mediaError} onClose={clearMediaError} duration={5000} />}
+      <MeetingRoom 
+        meeting={meeting} 
+        currentParticipant={participant} 
+        onLeave={handleLeave} 
+      />
+    </>
   );
 }
 
+import { LocalMediaProvider, useLocalMediaContext } from "@/hooks/useLocalMedia";
+import { Toast } from "@/components/ui/Toast";
+
 export default function MeetingPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background text-text">Loading...</div>}>
-      <MeetingContent />
-    </Suspense>
+    <LocalMediaProvider>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background text-text">Loading...</div>}>
+        <MeetingContent />
+      </Suspense>
+    </LocalMediaProvider>
   );
 }

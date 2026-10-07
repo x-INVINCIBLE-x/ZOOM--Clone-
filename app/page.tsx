@@ -12,6 +12,7 @@ import { Meeting } from "@/types";
 import { Calendar, Info, Plus, ChevronDown, MoreHorizontal, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { ErrorState } from "@/components/ui/EmptyState";
 
 export default function Dashboard() {
   const { currentUser, isLoading } = useMeetingsContext();
@@ -49,15 +50,19 @@ export default function Dashboard() {
     import("@/lib/ui-preferences").then(({ uiPreferences }) => uiPreferences.set("showGetStarted", false));
   };
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchMeetings = async () => {
+      setFetchError(null);
       try {
         const upcomingData = await meetingService.getUpcomingMeetings();
         const recentData = await meetingService.getRecentMeetings();
         setUpcoming(upcomingData);
         setRecent(recentData);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch meetings", err);
+        setFetchError(err.message || "Failed to load meetings");
       } finally {
         setMeetingsLoading(false);
       }
@@ -145,7 +150,14 @@ export default function Dashboard() {
                 
                 {/* Content Area */}
                 <div className="flex-1 p-4 bg-gray-50/30 overflow-y-auto">
-                  {upcoming.length > 0 ? (
+                  {fetchError ? (
+                    <ErrorState 
+                      title="Failed to load meetings" 
+                      description={fetchError} 
+                      actionLabel="Retry"
+                      onAction={() => window.location.reload()}
+                    />
+                  ) : upcoming.length > 0 ? (
                     <div className="space-y-3">
                       {upcoming.map(meeting => (
                         <UpcomingMeetingCard 
